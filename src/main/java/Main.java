@@ -4,9 +4,14 @@ import java.net.*;
 public class Main {
 	public static void main(String[] args) throws IOException {
 
-		String dir1 = "RETR ubuntu/dists/artful-backports/Release.gpg\n";
-		String dir2 = "RETR /ubuntu/project/trace/sadashbia.canonical.com.dists-timestamps\n";
-		//String dir2 = "RETR ubuntu/pool/main/a/ally-profile-manager/ally-profile-manager_0.1.10.orig.tar.xz\n";
+		String path = System.getProperty("user.home")+"/downloads";
+		String dir1 = "ubuntu/dists/artful-backports/";
+		String fileName1 = "Release.gpg";
+		String command1 = "RETR " + dir1 + fileName1 + "\n";
+
+		String dir2 = "ubuntu/project/trace/";
+		String fileName2 = "sadashbia.canonical.com.dists-timestamps";
+		String command2 = "RETR " + dir2 + fileName2 + "\n";
 
 		String hostname = "ftp.ubuntu.com";
 
@@ -16,44 +21,17 @@ public class Main {
 
 		OutputStreamWriter out = new OutputStreamWriter(clientSocket.getOutputStream());
 		InputStream in = clientSocket.getInputStream();
+		System.out.print(readLine(in));
+		sendLine(out,"USER anonymous\n");
+		System.out.print(readLine(in));
+		sendLine(out, "PASS\n");
+		System.out.print(readLine(in));
+		sendLine(out, "PASV\n");
 
-		int ans = -2;
-		while (ans != (int)'\n') {
-			ans = in.read();
-			System.out.print((char)ans);
-		}
-		out.write("USER anonymous\n");
-		out.flush();
-		ans = -2;
-		while (ans != (int)'\n') {
-			ans = in.read();
-			System.out.print((char)ans);
-		}
-		out.write("PASS\n");
-		out.flush();
-		ans = -2;
-		while (ans != (int)'\n') {
-			ans = in.read();
-			System.out.print((char)ans);
-		}
 
-		out.write("PASV\n");
-		out.flush();
-		ans = -2;
-		while (ans != (int)'(') {
-			ans = in.read();
-			System.out.print((char)ans);
-		}
-		String portInfo = "";
-		while (ans != (int)')') {
-			ans = in.read();
-			portInfo += (char)ans;
-			System.out.print((char)ans);
-		}
-		while (ans != (int)'\n') {
-			ans = in.read();
-			System.out.print((char)ans);
-		}
+		System.out.print(readToChar(in, '('));
+		String portInfo = readToChar(in, ')');
+		System.out.print(portInfo + readLine(in));
 
 		String[] totalPortInfo = portInfo.substring(0,portInfo.length()-1).split(",");
 
@@ -63,32 +41,24 @@ public class Main {
 
 		Socket dataSocket = new Socket(dataHost, dataPort);
 		InputStream dataIn = dataSocket.getInputStream();
+		sendLine(out, command1);
 
 
-		out.write(dir1.toCharArray(), 0, dir1.length());
-		out.flush();
 
-
-		String path = System.getProperty("user.home")+"/downloads";
 		File file1 = new File(path+"/file1.txt");
-
 		FileOutputStream os1 = new FileOutputStream(file1);
-		int b = -2;
-		while (b != (int)'\n') {
-			b = in.read();
-			System.out.print((char)b);
-		}
+
+		System.out.print(readLine(in));
 		int bytesWritten = 0;
 		int charByte;
 		while (true) {
 			charByte = dataIn.read();
-			if (charByte == -1) {
-				charByte = 0;
+			if (charByte == -1)
 				break;
-			}
 			os1.write(charByte);
 			if (bytesWritten < 1024) {
-				System.out.print(Integer.toBinaryString(charByte));
+				System.out.print(String.format("%8s", Integer.toBinaryString(charByte)).replace(' ', '0'));
+
 				bytesWritten++;
 			}
 		}
@@ -100,35 +70,19 @@ public class Main {
 
 
 
-		b = -2;
-		while (b != (int)'\n') {
-			b = in.read();
-			System.out.print((char)b);
-		}
-		System.out.println("File " + dir1 + " has been downloaded and saved to 'user/downloads/file1.txt'");
+		System.out.print(readLine(in));
+		System.out.println("File " + dir1 + fileName1 + " has been downloaded and saved to 'user/downloads/file1.txt'");
 
 
 		File file2 = new File(path+"/file2.txt");
 		FileOutputStream os2 = new FileOutputStream(file2);
 
-		out.write("PASV\n");
-		out.flush();
+		sendLine(out, "PASV\n");
 
-		ans = -2;
-		while (ans != (int)'(') {
-			ans = in.read();
-			System.out.print((char)ans);
-		}
-		portInfo = "";
-		while (ans != (int)')') {
-			ans = in.read();
-			portInfo += (char)ans;
-			System.out.print((char)ans);
-		}
-		while (ans != (int)'\n') {
-			ans = in.read();
-			System.out.print((char)ans);
-		}
+		System.out.print(readToChar(in, '('));
+		portInfo = readToChar(in, ')');
+		System.out.print(portInfo);
+		System.out.print(readLine(in));
 
 		totalPortInfo = portInfo.substring(0,portInfo.length()-1).split(",");
 
@@ -139,17 +93,9 @@ public class Main {
 		dataSocket = new Socket(dataHost, dataPort);
 		dataIn = dataSocket.getInputStream();
 
+		sendLine(out, command2);
 
-		out.write(dir2.toCharArray(), 0, dir2.length());
-		out.flush();
-
-
-
-		b = -2;
-		while (b != (int)'\n') {
-			b = in.read();
-			System.out.print((char)b);
-		}
+		System.out.print(readLine(in));
 		bytesWritten = 0;
 		while (true) {
 			charByte = dataIn.read();
@@ -159,20 +105,34 @@ public class Main {
 			}
 			os2.write(charByte);
 			if (bytesWritten < 1024) {
-				System.out.print(Integer.toBinaryString(charByte));
+				System.out.print(String.format("%8s", Integer.toBinaryString(charByte)).replace(' ', '0'));
 				bytesWritten++;
 			}
 		}
 		System.out.println();
-		b = -2;
-		while (b != (int)'\n') {
-			b = in.read();
-			System.out.print((char)b);
-		}
+		System.out.print(readLine(in));
 		os2.flush();
 		os2.close();
 		dataIn.close();
 		dataSocket.close();
+	}
 
+	public static void sendLine(OutputStreamWriter out, String msg) throws IOException {
+		out.write(msg);
+		out.flush();
+	}
+
+	public static String readLine(InputStream in) throws IOException {
+		return readToChar(in,'\n');
+	}
+
+	public static String readToChar(InputStream in, char c) throws IOException {
+		String result = "";
+		int resultByte = -2;
+		while (resultByte != (int)c) {
+			resultByte = in.read();
+			result += (char)resultByte;
+		}
+		return result;
 	}
 }
